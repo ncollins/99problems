@@ -181,3 +181,10 @@ insertAt e (x:xs) n
   | n == 1 = e:x:xs
   | n > 1  = x:(insertAt e xs (n-1))
   | n < 1  = error "insertAt: invalid index"
+
+-- Problem 22.
+-- a range function for integers
+
+range low high
+  | low > high = []
+  | otherwise  = low:(range (low+1) high)
