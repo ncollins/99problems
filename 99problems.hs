@@ -171,3 +171,13 @@ removeAt n (x:xs)
     | otherwise = let (e, ys) = removeAt (n-1) xs
                   in (e, x:ys)
 
+-- Problem 21.
+-- insert element at given position into list
+
+insertAt e [] n = if n == 1
+                  then [e]
+                  else error "insertAt: invalid index"
+insertAt e (x:xs) n
+  | n == 1 = e:x:xs
+  | n > 1  = x:(insertAt e xs (n-1))
+  | n < 1  = error "insertAt: invalid index"
