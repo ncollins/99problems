@@ -1,3 +1,4 @@
+import System.Random
 
 -- Problem 1.
 -- A function that returns the last element of a list
@@ -188,3 +189,16 @@ insertAt e (x:xs) n
 range low high
   | low > high = []
   | otherwise  = low:(range (low+1) high)
+
+-- Problem 23.
+-- select N random elements from a list
+-- I'm assuming elements can be repeated, so it's distinct from p24
+-- (use a RandomGen from System.Random)
+
+pickRandom :: (RandomGen g, Integral a) => [b] -> a -> g -> [b]
+pickRandom [] _ _ = []
+pickRandom xs n g = pick n g
+                    where max = (length xs) - 1
+                          pick 0 _ = []
+                          pick n g = let (i, nextg) = randomR (0, max) g
+                                     in (xs !! i) : pick (n - 1) nextg
