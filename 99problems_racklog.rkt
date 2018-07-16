@@ -81,6 +81,8 @@
         [('())]
         [((cons hd tl)) (%is-list tl)]))
 
+
+;; TODO - this doesn't work in reverse
 (define %flatten
   (%rel (hd tl hd0 tl0 flat flathead flattail)
         [('() '())]
@@ -95,6 +97,9 @@
 
 ;; p08 - Eliminate consecutive duplicates of list elements
 
+;; why reverse? because pulling from the head of the "input"
+;; and cons-ing to the accumulator reverses the list
+
 (define %compress-reverse
   (%rel (hd tl hd-acc tl-acc comprev)
         [((cons hd-acc tl) (cons hd-acc tl-acc) comprev)
@@ -108,3 +113,107 @@
 (define %compress
   (%rel (xs comp comprev)
         [(xs comp) (%compress-reverse xs '() comprev) (%reverse comp comprev)]))
+
+;; p09 - Pack consecutive duplicates of list elements into sublists.
+
+;; this runs out of memory when trying to turn the sublists into the original
+;; how do I write a reversible 
+
+(define %group-sublists-reverse
+  (%rel (hd-acc tl-acc1 tl-acc acc hd tl grouprev)
+        [((cons hd-acc tl) (cons (cons hd-acc tl-acc1 ) tl-acc) grouprev)
+         (%group-sublists-reverse tl (cons (cons hd-acc (cons hd-acc tl-acc1)) tl-acc) grouprev)]
+        [((cons hd tl) acc grouprev)
+         (%group-sublists-reverse tl (cons (cons hd '()) acc) grouprev)]
+        [('() grouprev grouprev)]))
+
+;; helper function
+
+(define %all-match
+  (%rel (tl e)
+        ;;[('() _)]
+        [((cons e '()) e)]
+        [((cons e tl) e) (%all-match tl e)]))
+
+(define %concat
+  (%rel (xs ys x0 x1 ytail)
+        [('() '())]
+        [(xs ys) (%append x0 x1 xs) (%= (cons x0 ytail) ys) (%concat x1 ys)]))
+
+(define %group-sublists-better
+  (%rel (xs ys tail0 tail matching e rest-ys p q)
+        [('() '())]
+        [(xs ys) (%all-match xs e) (%= xs ys)]
+        [(xs ys)
+         (%= ys (cons matching rest-ys))
+         (%append matching (cons tail0 tail) xs)
+         (%all-match matching e)
+         (%= rest-ys (cons (cons tail0 p) q))
+         (%/= e tail0) ; fails here, %/= succeeds only if they CANNOT be unified
+         (%group-sublists-better (cons tail0 tail) rest-ys)]))
+
+        
+
+(define %group-sublists
+  (%rel (xs group grouprev)
+        [(xs group) (%group-sublists-reverse xs '() grouprev) (%reverse group grouprev)]))
+
+
+;; p10 - Run-length encoding of a list (use p09)
+
+(define %repeatr
+  (%rel (e tl n n0)
+        [('() _ 0)]
+        [((cons e tl) e n) (%is n0 (- n 1)) (%repeatr tl e n0)]
+        ))
+
+(define %repeata
+  (%rel (e n n0 acc rep)
+        [(e acc 0 acc)] ;; for some reason, including "e" is neccessary, I'm not sure why
+        [(e acc n rep) (%is n0 (- n 1)) (%repeata e (cons e acc) n0 rep)]))
+
+;; This works to some extend, but cannot find results for
+;; (%which (n) (%list-repeat 2 n '(2 2 2)))
+;; which is the exact thing I need :(
+(define %list-repeat
+  (%rel (e n rep)
+        [(e n rep) (%repeata e '() n rep)]))
+
+;; ---------------
+
+(define %rep-list
+  (%rel (e n n0 tl)
+        [(e 0 '())] ;; again, the "e" seems important ??
+        ;[(e n (cons e tl)) (%is n0 (- n 1)) (%rep-list e n0 tl)]))
+        [(e n (cons e tl)) (%is n (+ n0 1)) (%rep-list e n0 tl)]))
+
+;; ---------------
+
+;(define %run-length-encode
+;  (%rel ()
+;        [(xs run-length-xs)
+;         (%group-sublists xs grouped)
+
+
+
+(define %repeat-element
+  (%rel (length element lst)
+        [(length element lst) (%length length lst) (%all-match lst element)]))
+
+
+(define %run-length-grouped
+  (%rel (hd0 tl0 n1 e1 tl1)
+        [('() '())]
+        [((cons hd0 tl0) (cons (cons n1 e1) tl1)) (%repeat-element n1 e1 hd0) (%run-length-grouped tl0 tl1)]))
+
+(define %run-length-encode
+  (%rel (xs grouped run-length-xs)
+        [(xs run-length-xs)
+         (%group-sublists xs grouped) (%run-length-grouped grouped run-length-xs)]))
+
+
+;(define %maplist
+;  (%rel (hd0 tl0;hd1 tl1 rel)
+;        [('() '() rel)]
+;        [((cons hd0 tl0) (cons hd1 tl1) rel) (rel hd0 hd1) (%maplist tl0 tl1 rel)]))
+         
